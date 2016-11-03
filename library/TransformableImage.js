@@ -1,9 +1,14 @@
 'use strict';
 
 import React, { Component, PropTypes } from 'react';
-import { Image } from 'react-native';
+import {
+  Image,
+  ProgressBarAndroid,
+  Platform,
+} from 'react-native';
 
 import ViewTransformer from 'react-native-view-transformer';
+import * as Progress from 'react-native-progress';
 
 let DEV = false;
 
@@ -24,13 +29,27 @@ export default class TransformableImage extends Component {
     enableTranslate: PropTypes.bool,
     onSingleTapConfirmed: PropTypes.func,
     onTransformGestureReleased: PropTypes.func,
-    onViewTransformed: PropTypes.func
+    onViewTransformed: PropTypes.func,
+
+    /*
+     * image tag generated using require(asset_path)
+     */
+    progressImage: PropTypes.number,
+
+    /*
+     * displays Progress.Circle instead of default Progress.Bar
+     * it's ignored when progressImage is also passed.
+     * iOS only
+     */
+    useCircleProgress: PropTypes.bool,
   };
 
   static defaultProps = {
     enableTransform: true,
     enableScale: true,
-    enableTranslate: true
+    enableTranslate: true,
+
+    useCircleProgress: true,
   };
 
   constructor(props) {
@@ -42,7 +61,10 @@ export default class TransformableImage extends Component {
 
       imageLoaded: false,
       pixels: undefined,
-      keyAcumulator: 1
+      keyAcumulator: 1,
+
+      progress: 0,
+      error: false,
     };
   }
 
@@ -101,27 +123,86 @@ export default class TransformableImage extends Component {
         style={this.props.style}>
         <Image
           {...this.props}
-          style={[this.props.style, {backgroundColor: 'transparent'}]}
+          style={[this.props.style, {backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center'}]}
           resizeMode={'contain'}
-          onLoadStart={this.onLoadStart.bind(this)}
-          onLoad={this.onLoad.bind(this)}
+          onLoadStart={this._onLoadStart.bind(this)}
+          onLoad={this._onLoad.bind(this)}
+          onProgress={this._onProgress.bind(this)}
+          onError={this._onError.bind(this)}
           capInsets={{left: 0.1, top: 0.1, right: 0.1, bottom: 0.1}} //on iOS, use capInsets to avoid image downsampling
-        />
+        >
+        {this.state.error ? this._renderErrorIcon() : this._renderProgressIndicator()}
+        </Image>
       </ViewTransformer>
     );
   }
 
-  onLoadStart(e) {
+  _renderProgressIndicator() {
+    const { progressImage, useCircleProgress } = this.props;
+    const { progress } = this.state;
+
+    if (progress < 1) {
+      if (progressImage) {
+        return (
+          <Image
+            source={progressImage}
+          />
+        );
+      }
+
+      if (Platform.OS === 'android') {
+        return <ProgressBarAndroid progress={progress} />;
+      }
+
+      const ProgressElement = useCircleProgress ? Progress.Circle : Progress.Bar;
+      return (
+        <ProgressElement
+          progress={progress}
+          thickness={20}
+          color={'white'}
+        />
+      );
+    }
+    return null;
+  }
+
+  _renderErrorIcon() {
+    return (
+      <Image
+        source={require('../Assets/image-error.png')}
+      />
+    );
+  }
+
+  _onLoadStart(e) {
     this.props.onLoadStart && this.props.onLoadStart(e);
     this.setState({
-      imageLoaded: false
+      imageLoaded: false,
+      progress: 0,
     });
   }
 
-  onLoad(e) {
+  _onLoad(e) {
     this.props.onLoad && this.props.onLoad(e);
     this.setState({
-      imageLoaded: true
+      imageLoaded: true,
+      progress: 1,
+    });
+  }
+
+  _onProgress(event) {
+    const progress = event.nativeEvent.loaded / event.nativeEvent.total;
+    if (progress !== this.state.progress) {
+      this.setState({
+        progress,
+      });
+    }
+  }
+
+  _onError() {
+    this.setState({
+      error: true,
+      progress: 1,
     });
   }
 

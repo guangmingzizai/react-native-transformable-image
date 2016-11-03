@@ -16,6 +16,7 @@ const {width, height} = Dimensions.get('window');
 //const uri1 = 'http://rosemarieberger.com/wp-content/uploads/2013/06/game-of-thrones.jpg';
 const uri1 = 'http://static.yoaicdn.com/shoppc/images/banner1_0747398.jpg';
 const uri2 = 'https://raw.githubusercontent.com/yoaicom/resources/master/images/game_of_thrones_2.jpg';
+const uri3 = 'http://funnypicture.org/wallpaper/2015/05/funny-cat-jumping-15-hd-wallpaper.jpg';
 
 export default class App extends Component {
 
@@ -23,7 +24,7 @@ export default class App extends Component {
     super(props);
 
     this.state = {
-      uri: uri1
+      uri: uri3
     }
   }
 
